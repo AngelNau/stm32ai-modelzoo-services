@@ -21,6 +21,20 @@ from omegaconf import OmegaConf, DictConfig, open_dict
 from common.utils import aspect_ratio_dict, color_mode_n6_dict
 import onnxruntime
 
+def onnx_type_to_numpy(onnx_type: str):
+    type_map = {
+        'tensor(float)': np.float32,
+        'tensor(float16)': np.float16,
+        'tensor(double)': np.float64,
+        'tensor(int32)': np.int32,
+        'tensor(int64)': np.int64,
+        'tensor(int8)': np.int8,
+        'tensor(uint8)': np.uint8,
+        'tensor(bool)': np.bool_,
+        # Add more if needed
+    }
+    return type_map.get(onnx_type, None)
+
 def gen_h_user_file_h7(config: DictConfig = None, quantized_model_path: str = None, board: str = None) -> None:
     """
     Generates a C header file containing user configuration for the AI model.
@@ -47,10 +61,23 @@ def gen_h_user_file_h7(config: DictConfig = None, quantized_model_path: str = No
             classes = classes + '   "' + str(x) + '"' + ' ,' + ('\\\n' if (i % 5 == 0 and i != 0) else '')
 
     # Quantization params
-    interpreter_quant = tf.lite.Interpreter(model_path=quantized_model_path)
-    input_details = interpreter_quant.get_input_details()[0]
-    output_details = interpreter_quant.get_output_details()[0]
-    input_shape = input_details['shape']
+    if os.path.basename(quantized_model_path).endswith(".onnx"):
+        session = onnxruntime.InferenceSession(quantized_model_path, None)
+        input_details = session.get_inputs()[0]
+        output_details = session.get_outputs()[0]
+        input_shape = np.array([input_details.shape[0], input_details.shape[2], input_details.shape[3], input_details.shape[1]])
+        print(input_details.type)
+        print(output_details.type)
+        input_dtype = onnx_type_to_numpy(input_details.type)
+        output_dtype = onnx_type_to_numpy(output_details.type)
+    else:
+        interpreter_quant = tf.lite.Interpreter(model_path=quantized_model_path)
+        input_details = interpreter_quant.get_input_details()[0]
+        output_details = interpreter_quant.get_output_details()[0]
+        input_shape = input_details['shape']
+        input_dtype = input_details['dtype']
+        output_dtype = output_details['dtype']
+
     path = os.path.join(HydraConfig.get().runtime.output_dir, "C_header/")
     try:
         os.mkdir(path)
@@ -111,9 +138,9 @@ def gen_h_user_file_h7(config: DictConfig = None, quantized_model_path: str = No
         f.write("#define FLOAT32_FORMAT    (3)\n")
         f.write("\n")
         f.write("#define QUANT_INPUT_TYPE     {}\n".format(
-            opt[[np.uint8, np.int8, np.float32].index(input_details['dtype'])]))
+            opt[[np.uint8, np.int8, np.float32].index(input_dtype)]))
         f.write("#define QUANT_OUTPUT_TYPE    {}\n".format(
-            opt[[np.uint8, np.int8, np.float32].index(output_details['dtype'])]))
+            opt[[np.uint8, np.int8, np.float32].index(output_dtype)]))
         f.write("\n")
         if str(board).split(",")[0] == "NUCLEO-H743ZI2":
             f.write("/* Display configuration */\n")

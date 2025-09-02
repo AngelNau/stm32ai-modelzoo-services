@@ -121,7 +121,12 @@ void Network_Preprocess(AppConfig_TypeDef *App_Config_Ptr)
 void Network_Inference(AppConfig_TypeDef *App_Config_Ptr)
 {
   App_Config_Ptr->Tinf_start =Utility_GetTimeStamp();
-  
+  // LogSoftmax
+  // float *log_probs = (float*)App_Config_Ptr->nn_output_buffer;
+  //  for (int i = 0; i < NB_CLASSES; i++) {
+  //      log_probs[i] = expf(log_probs[i]);
+  //  }
+
   /***********************************/
   /*********Run NN inference**********/
   /***********************************/
