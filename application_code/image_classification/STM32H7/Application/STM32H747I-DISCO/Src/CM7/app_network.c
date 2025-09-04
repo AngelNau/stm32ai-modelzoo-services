@@ -383,24 +383,36 @@ void PixelValueConversion(AppConfig_TypeDef *App_Config_Ptr, void *pSrc)
   }
   else if(App_Config_Ptr->nn_input_type == INT8_FORMAT)
   {
-	/*Conversion format from uint8 to int8*/
-	const uint32_t nb_pixels = AI_NETWORK_WIDTH * AI_NETWORK_HEIGHT * AI_NETWORK_CHANNEL;
-	uint8_t *source = (uint8_t *)pSrc;
-	uint8_t unsigned_input_value;
-	int8_t *destination = (int8_t *) App_Config_Ptr->nn_input_buffer;
-	int8_t signed_input_value;
+	  /*Conversion format from uint8 to int8*/
+  	const uint32_t nb_pixels = AI_NETWORK_WIDTH * AI_NETWORK_HEIGHT * AI_NETWORK_CHANNEL;
+  	uint8_t *source = (uint8_t *)pSrc;
+  	uint8_t unsigned_input_value;
+  	int8_t *destination = (int8_t *) App_Config_Ptr->nn_input_buffer;
+  	int8_t signed_input_value;
 
 
-	for (int32_t i = 0; i < nb_pixels; i++)
-	{
-		unsigned_input_value= (uint8_t)source[i];
-		signed_input_value= ((int16_t)unsigned_input_value)-128;
-		destination[i]= signed_input_value;
-	}
+  	for (int32_t i = 0; i < nb_pixels; i++)
+  	{
+  		unsigned_input_value= (uint8_t)source[i];
+  		signed_input_value= ((int16_t)unsigned_input_value)-128;
+  		destination[i]= signed_input_value;
+  	}
+  }
+  else if(App_Config_Ptr->nn_input_type == FLOAT32_FORMAT)
+  {
+    /* Conversion from uint8 input to float32 in range [0,1] */
+    const uint32_t nb_pixels = AI_NETWORK_WIDTH * AI_NETWORK_HEIGHT * AI_NETWORK_CHANNEL;
+    uint8_t *source = (uint8_t *)pSrc;
+    float *destination = (float *)App_Config_Ptr->nn_input_buffer;
+
+    for (uint32_t i = 0; i < nb_pixels; i++)
+    {
+        destination[i] = (float)source[i] / 255.0f;
+    }
   }
   else
   {
-	  while(1);
+      while(1);
   }
 }
 

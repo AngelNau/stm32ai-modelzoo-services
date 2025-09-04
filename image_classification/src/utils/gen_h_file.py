@@ -66,8 +66,6 @@ def gen_h_user_file_h7(config: DictConfig = None, quantized_model_path: str = No
         input_details = session.get_inputs()[0]
         output_details = session.get_outputs()[0]
         input_shape = np.array([input_details.shape[0], input_details.shape[2], input_details.shape[3], input_details.shape[1]])
-        print(input_details.type)
-        print(output_details.type)
         input_dtype = onnx_type_to_numpy(input_details.type)
         output_dtype = onnx_type_to_numpy(output_details.type)
     else:
